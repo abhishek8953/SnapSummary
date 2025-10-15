@@ -1,66 +1,61 @@
 // background.js
 
+// ✅ 1. Insert your Gemini API key here (DO NOT share this publicly)
+const GEMINI_API_KEY = ""; // <---- INSERT YOUR API KEY HERE
+
+// ✅ 2. Gemini API endpoint
+const GEMINI_API_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent";
+
+// ✅ 3. Main message listener
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   (async () => {
     try {
-      if (!msg || !msg.type) return sendResponse({ ok:false, error:'no-type' });
+      if (!msg || !msg.type) return sendResponse({ ok: false, error: "no-type" });
 
-      if (msg.type === 'CALL_GEMINI') {
-        // msg.payload: {prompt, useProxy, proxyUrl}
-        const { prompt, useProxy, proxyUrl } = msg.payload;
+      // 🔹 When content script requests Gemini API call
+      if (msg.type === "CALL_GEMINI") {
+        const { prompt } = msg.payload;
 
-        if (useProxy) {
-          if (!proxyUrl) return sendResponse({ ok:false, error:'proxyUrl required' });
-          // forward to user-provided proxy
-          const resp = await fetch(proxyUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prompt })
+        try {
+          const response = await fetch(`${GEMINI_API_ENDPOINT}?key=${GEMINI_API_KEY}`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: prompt }] }]
+            })
+          }).catch((err)=>{
+            console.log("error",err)
           });
-          const data = await resp.json();
-          return sendResponse({ ok:true, data });
-        } else {
-          // Direct call: read apiKey and endpoint from chrome.storage
-          const conf = await chrome.storage.local.get(['apiKey','apiEndpoint','apiProvider']);
-          const apiKey = conf.apiKey;
-          const apiEndpoint = conf.apiEndpoint;
-          if (!apiKey || !apiEndpoint) return sendResponse({ ok:false, error:'apiKey or apiEndpoint not set. Use popup to set them.' });
 
-          // Example: send request to endpoint (you must set apiEndpoint appropriate to Gemini docs)
-          const body = {
-            // The body shape depends on API. Here is a basic OpenAI/Responses-like example;
-            // adjust to the exact Gemini/endpoint schema you use.
-            input: prompt
-          };
-
-          const resp = await fetch(apiEndpoint, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${apiKey}`
-            },
-            body: JSON.stringify(body)
-          });
-          const data = await resp.json();
-          return sendResponse({ ok:true, data });
+          const data = await response.json();
+          return sendResponse({ ok: true, data });
+        } catch (err) {
+          console.error("Gemini fetch error:", err);
+          return sendResponse({ ok: false, error: err.message });
         }
       }
 
-      if (msg.type === 'EXTRACT_AND_SUMMARIZE') {
-        // Forward to the content script in the active tab (in case popup requested extraction)
-        const tabs = await chrome.tabs.query({active:true, currentWindow:true});
-        if (!tabs || tabs.length === 0) return sendResponse({ ok:false, error:'no active tab' });
-        chrome.tabs.sendMessage(tabs[0].id, { type:'DO_EXTRACT_AND_SUMMARIZE', payload: msg.payload }, (resp) => {
-          // resp will come from content script
-          sendResponse(resp || { ok:false, error:'no-response-from-content' });
-        });
-        return; // keep channel open
+      // 🔹 When popup requests extraction & summarization
+      if (msg.type === "EXTRACT_AND_SUMMARIZE") {
+        const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (!tabs || tabs.length === 0)
+          return sendResponse({ ok: false, error: "no active tab" });
+
+        chrome.tabs.sendMessage(
+          tabs[0].id,
+          { type: "DO_EXTRACT_AND_SUMMARIZE", payload: msg.payload },
+          (resp) => {
+            sendResponse(resp || { ok: false, error: "no-response-from-content" });
+          }
+        );
+        return; // keep async open
       }
 
-      sendResponse({ ok:false, error:'unknown type' });
+      sendResponse({ ok: false, error: "unknown type" });
     } catch (e) {
-      sendResponse({ ok:false, error: e.message });
+      sendResponse({ ok: false, error: e.message });
     }
   })();
-  return true; // async
+
+  return true; // keep async channel open
 });
