@@ -1,0 +1,18 @@
+{
+  "manifest_version": 3,
+  "name": "Gmail Gemini Summarizer",
+  "version": "1.0",
+  "description": "Extract Gmail page content, send to Gemini for summarization, show bullet summary in a right-side panel.",
+  "permissions": ["scripting", "activeTab", "storage"],
+  "host_permissions": ["https://mail.google.com/*", "<all_urls>"],
+  "action": { "default_popup": "popup.html", "default_title": "Gmail Summarizer" },
+  "background": { "service_worker": "background.js" },
+  
+  "content_scripts": [
+    {
+      "matches": ["https://mail.google.com/*"],
+      "js": ["content-script.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
