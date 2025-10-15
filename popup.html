@@ -1,0 +1,38 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Gmail Gemini Summarizer</title>
+  <style>
+    body { font-family: Arial, sans-serif; width: 360px; padding: 10px; }
+    label { font-size: 12px; display:block; margin-top:6px; }
+    input[type="text"], textarea { width:100%; box-sizing:border-box; }
+    button { margin-top:8px; width:100%; padding:8px; }
+  </style>
+</head>
+<body>
+  <h3>Gmail Summarizer — Settings</h3>
+
+  <label>API Mode</label>
+  <select id="mode">
+    <option value="proxy">Use proxy server (recommended)</option>
+    <option value="direct">Direct call from extension (less secure)</option>
+  </select>
+
+  <label>Proxy URL (if using proxy)</label>
+  <input id="proxyUrl" type="text" placeholder="https://your-proxy.example.com/summarize" />
+
+  <label>Direct endpoint (if using direct)</label>
+  <input id="apiEndpoint" type="text" placeholder="Full API endpoint (e.g. https://api.openai.com/v1/responses or Gemini endpoint)" />
+
+  <label>API Key (direct only) — WARNING: storing keys here is insecure</label>
+  <input id="apiKey" type="text" placeholder="Paste API key (optional)" />
+
+  <button id="save">Save settings</button>
+  <button id="summarizeNow">Open Gmail and Summarize Now</button>
+
+  <div id="msg" style="margin-top:8px;color:green;"></div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
